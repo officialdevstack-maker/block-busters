@@ -1,11 +1,13 @@
 import { DiscoverSidebar } from '@/components/discover-sidebar'
 import { AppBanner } from '@/components/app-banner'
 import { ContinueWatching } from '@/components/continue-watching'
+import { FranchiseRow } from '@/components/franchise-row'
 import { GenreRow } from '@/components/genre-row'
 import { MediaRow } from '@/components/media-row'
 import { MovieStack } from '@/components/movie-stack'
 import { SiteHeader } from '@/components/site-header'
 import { movies } from '@/data/movies'
+import { franchises } from '@/data/franchises'
 import Link from 'next/link'
 
 export default function Page() {
@@ -18,6 +20,7 @@ export default function Page() {
           <MovieStack movies={movies} />
           <ContinueWatching movies={movies} />
           <GenreRow />
+          <FranchiseRow franchises={franchises} />
           <MediaRow
             eyebrow="Most popular"
             movies={[...movies].reverse()}
@@ -38,6 +41,31 @@ export default function Page() {
             eyebrow="Picked for you"
             movies={[...movies].slice(2).concat(movies.slice(0, 2))}
             title="Recommended"
+          />
+          <MediaRow
+            eyebrow="Korean stories"
+            movies={[...movies].slice(3).concat(movies.slice(0, 3))}
+            title="K-Drama"
+          />
+          <MediaRow
+            eyebrow="Nigerian cinema"
+            movies={[...movies].slice(1).concat(movies.slice(0, 1))}
+            title="Nollywood"
+          />
+          <MediaRow
+            eyebrow="Binge-worthy"
+            movies={[...movies].slice(2).concat(movies.slice(0, 2))}
+            title="Popular series"
+          />
+          <MediaRow
+            eyebrow="Stay in the dark"
+            movies={[...movies].reverse()}
+            title="Horror"
+          />
+          <MediaRow
+            eyebrow="Holiday favorites"
+            movies={movies}
+            title="Christmas movies"
           />
         </div>
       </main>
