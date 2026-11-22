@@ -20,7 +20,7 @@ export function ContinueWatching({ movies }: ContinueWatchingProps) {
     <Card className="rounded-2xl py-5">
       <div className="flex items-center justify-between px-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
             Your activity
           </p>
           <h2 className="mt-1 text-lg font-semibold">Continue watching</h2>

@@ -2,16 +2,21 @@ import { Bookmark, ChevronDown, Search, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DiscoverSidebar } from '@/components/discover-sidebar'
+import { MobileNav } from '@/components/mobile-nav'
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-white text-foreground">
+    <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 text-foreground">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(220px,1fr)_auto_minmax(220px,1fr)]">
         <form
           action="/"
           role="search"
-          className="flex h-11 w-full max-w-sm items-center gap-3 rounded-full border border-border bg-transparent px-4 transition-colors focus-within:border-amber-500"
+          className="flex h-11 w-full max-w-sm items-center gap-3 rounded-full border border-border bg-transparent px-4 transition-colors focus-within:border-brand"
         >
+          <MobileNav>
+            <DiscoverSidebar />
+          </MobileNav>
           <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           <Input
             aria-label="Search movies and shows"
@@ -22,7 +27,7 @@ export function SiteHeader() {
           />
           <Button
             aria-label="Submit search"
-            className="rounded-full p-1 text-muted-foreground hover:text-amber-600"
+            className="rounded-full p-1 text-muted-foreground hover:text-brand"
             size="icon-xs"
             type="submit"
             variant="ghost"
@@ -37,7 +42,7 @@ export function SiteHeader() {
         >
           <Button
             aria-current="page"
-            className="h-9 shrink-0 rounded-full bg-amber-400 px-3.5 text-xs normal-case tracking-normal text-black hover:bg-amber-300"
+            className="h-9 shrink-0 rounded-full bg-brand px-3.5 text-xs normal-case tracking-normal text-black"
             nativeButton={false}
             render={<Link href="/" />}
             size="sm"
@@ -118,7 +123,7 @@ export function SiteHeader() {
             <span className="hidden xl:inline">My list</span>
           </Button>
           <Button
-            className="h-10 gap-2 rounded-full bg-white px-4 text-sm normal-case tracking-normal text-black hover:bg-amber-300"
+            className="h-10 gap-2 rounded-full bg-brand px-4 text-sm normal-case tracking-normal text-black hover:brightness-105"
             nativeButton={false}
             render={<Link href="/login" />}
             size="sm"

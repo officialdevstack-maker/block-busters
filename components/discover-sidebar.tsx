@@ -46,7 +46,7 @@ export function DiscoverSidebar() {
                   aria-current={current ? 'page' : undefined}
                   className={`h-10 w-full justify-start gap-3 rounded-lg px-3 text-sm normal-case tracking-normal ${
                     current
-                      ? 'bg-amber-400/15 font-medium text-amber-700 hover:bg-amber-400/20'
+                      ? 'bg-brand/15 font-medium text-brand hover:bg-brand/20'
                       : 'text-muted-foreground'
                   }`}
                   nativeButton={false}
@@ -73,7 +73,7 @@ export function DiscoverSidebar() {
             {genres.map(({ name, subgenres }) => (
               <li key={name}>
                 <details className="group/genre">
-                  <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600">
+                  <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
                     {name}
                     <ChevronDown
                       aria-hidden="true"

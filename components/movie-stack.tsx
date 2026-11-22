@@ -94,7 +94,7 @@ export function MovieStack({ movies }: MovieStackProps) {
                 className="absolute left-5 top-5 rounded-full px-3 py-1.5 text-xs font-bold text-black"
                 style={{ backgroundColor: movie.accent }}
               >
-                {isActive ? "Editors' choice" : `${offset + 1} cards away`}
+                {isActive ? "Editors' choice" : movie.genre}
               </div>
 
               <motion.div

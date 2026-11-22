@@ -10,63 +10,103 @@ import { movies } from '@/data/movies'
 import { franchises } from '@/data/franchises'
 import Link from 'next/link'
 
+const rotate = <T,>(list: T[], by: number) =>
+  [...list.slice(by), ...list.slice(0, by)]
+
+const mediaRows = {
+  trending: {
+    eyebrow: 'Most popular',
+    title: 'Trending movies & series',
+    movies: [...movies].reverse(),
+  },
+  new: {
+    eyebrow: 'Fresh this week',
+    title: 'New releases',
+    movies: rotate(movies, 1),
+  },
+  christmas: {
+    eyebrow: 'Holiday favorites',
+    title: 'Christmas movies',
+    movies,
+  },
+  recommended: {
+    eyebrow: 'Picked for you',
+    title: 'Recommended',
+    movies: rotate(movies, 2),
+  },
+  nollywood: {
+    eyebrow: 'Nigerian cinema',
+    title: 'Nollywood',
+    movies: rotate(movies, 1),
+  },
+  kdrama: {
+    eyebrow: 'Korean stories',
+    title: 'K-Drama',
+    movies: rotate(movies, 3),
+  },
+  top: {
+    eyebrow: 'Fan favorites',
+    title: 'Top watched',
+    movies,
+  },
+  series: {
+    eyebrow: 'Binge-worthy',
+    title: 'Popular series',
+    movies: rotate(movies, 2),
+  },
+  horror: {
+    eyebrow: 'Stay in the dark',
+    title: 'Horror',
+    movies: [...movies].reverse(),
+  },
+} as const
+
+const layout = [
+  'hero',
+  'genres',
+  'continue',
+  'trending',
+  'new',
+  'christmas',
+  'recommended',
+  'franchises',
+  'nollywood',
+  'kdrama',
+  'top',
+  'series',
+  'horror',
+  'app-banner',
+] as const
+
+function renderSection(key: (typeof layout)[number]) {
+  switch (key) {
+    case 'hero':
+      return <MovieStack movies={movies} />
+    case 'genres':
+      return <GenreRow />
+    case 'continue':
+      return <ContinueWatching movies={movies} />
+    case 'franchises':
+      return <FranchiseRow franchises={franchises} />
+    case 'app-banner':
+      return <AppBanner />
+    default:
+      return <MediaRow {...mediaRows[key]} />
+  }
+}
+
 export default function Page() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main id="discover" className="grid grid-cols-1 items-start gap-3 p-3 md:grid-cols-5">
-        <DiscoverSidebar />
+        <div className="hidden md:block">
+          <DiscoverSidebar />
+        </div>
         <div className="space-y-10 md:col-span-4">
-          <MovieStack movies={movies} />
-          <ContinueWatching movies={movies} />
-          <GenreRow />
-          <FranchiseRow franchises={franchises} />
-          <MediaRow
-            eyebrow="Most popular"
-            movies={[...movies].reverse()}
-            title="Trending movies & series"
-          />
-          <MediaRow
-            eyebrow="Fan favorites"
-            movies={movies}
-            title="Top watched"
-          />
-          <MediaRow
-            eyebrow="Fresh this week"
-            movies={[...movies].slice(1).concat(movies[0])}
-            title="New releases"
-          />
-          <AppBanner />
-          <MediaRow
-            eyebrow="Picked for you"
-            movies={[...movies].slice(2).concat(movies.slice(0, 2))}
-            title="Recommended"
-          />
-          <MediaRow
-            eyebrow="Korean stories"
-            movies={[...movies].slice(3).concat(movies.slice(0, 3))}
-            title="K-Drama"
-          />
-          <MediaRow
-            eyebrow="Nigerian cinema"
-            movies={[...movies].slice(1).concat(movies.slice(0, 1))}
-            title="Nollywood"
-          />
-          <MediaRow
-            eyebrow="Binge-worthy"
-            movies={[...movies].slice(2).concat(movies.slice(0, 2))}
-            title="Popular series"
-          />
-          <MediaRow
-            eyebrow="Stay in the dark"
-            movies={[...movies].reverse()}
-            title="Horror"
-          />
-          <MediaRow
-            eyebrow="Holiday favorites"
-            movies={movies}
-            title="Christmas movies"
-          />
+          {layout.map((key) => (
+            <div key={key}>{renderSection(key)}</div>
+          ))}
         </div>
       </main>
       <footer className="border-t border-border px-6 py-5">
