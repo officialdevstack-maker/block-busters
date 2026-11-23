@@ -10,7 +10,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 text-foreground">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(220px,1fr)_auto_minmax(220px,1fr)]">
         <form
-          action="/"
+          action="/browse"
           role="search"
           className="flex h-11 w-full max-w-sm items-center gap-3 rounded-full border border-border bg-transparent px-4 transition-colors focus-within:border-brand"
         >
@@ -53,7 +53,7 @@ export function SiteHeader() {
           <Button
             className="h-9 shrink-0 rounded-full px-3.5 text-xs normal-case tracking-normal text-muted-foreground"
             nativeButton={false}
-            render={<Link href="/?category=movies" />}
+            render={<Link href="/browse?category=movies" />}
             size="sm"
             variant="ghost"
           >
@@ -62,7 +62,7 @@ export function SiteHeader() {
           <Button
             className="h-9 shrink-0 rounded-full px-3.5 text-xs normal-case tracking-normal text-muted-foreground"
             nativeButton={false}
-            render={<Link href="/?category=series" />}
+            render={<Link href="/browse?category=series" />}
             size="sm"
             variant="ghost"
           >
@@ -71,7 +71,7 @@ export function SiteHeader() {
           <Button
             className="hidden h-9 shrink-0 rounded-full px-3.5 text-xs normal-case tracking-normal text-muted-foreground md:inline-flex"
             nativeButton={false}
-            render={<Link href="/?genre=action" />}
+            render={<Link href="/browse?genre=action" />}
             size="sm"
             variant="ghost"
           >
@@ -80,7 +80,7 @@ export function SiteHeader() {
           <Button
             className="hidden h-9 shrink-0 rounded-full px-3.5 text-xs normal-case tracking-normal text-muted-foreground md:inline-flex"
             nativeButton={false}
-            render={<Link href="/?genre=drama" />}
+            render={<Link href="/browse?genre=drama" />}
             size="sm"
             variant="ghost"
           >
@@ -99,7 +99,7 @@ export function SiteHeader() {
                 <Button
                   className="h-9 w-full justify-start rounded-lg px-3 text-sm normal-case tracking-normal text-muted-foreground"
                   nativeButton={false}
-                  render={<Link href={`/?genre=${genre.toLowerCase()}`} />}
+                  render={<Link href={`/browse?genre=${genre.toLowerCase()}`} />}
                   size="sm"
                   variant="ghost"
                   key={genre}

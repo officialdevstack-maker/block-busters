@@ -13,9 +13,9 @@ import { Button } from '@/components/ui/button'
 
 const quickLinks = [
   { label: 'Home', href: '/', icon: Home, current: true },
-  { label: 'Favorites', href: '/?view=favorites', icon: Heart },
-  { label: 'Coming Soon', href: '/?view=coming-soon', icon: Clock3 },
-  { label: 'Trending', href: '/?view=trending', icon: TrendingUp },
+  { label: 'Favorites', href: '/browse?collection=favorites', icon: Heart },
+  { label: 'Coming Soon', href: '/browse?collection=coming-soon', icon: Clock3 },
+  { label: 'Trending', href: '/browse?collection=trending', icon: TrendingUp },
 ]
 
 const genres = [
@@ -33,7 +33,7 @@ const footerLinks = [
 
 export function DiscoverSidebar() {
   return (
-    <aside className="md:sticky md:top-20 md:self-start">
+    <aside>
       <Card className="flex h-full min-h-[calc(100vh-7rem)] flex-col gap-0 rounded-2xl p-4 md:h-[calc(100vh-6rem)] md:min-h-0 md:p-5">
         <nav aria-label="Quick links">
           <h2 className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -88,7 +88,7 @@ export function DiscoverSidebar() {
                           nativeButton={false}
                           render={
                             <Link
-                              href={`/?genre=${name.toLowerCase()}&subgenre=${encodeURIComponent(subgenre.toLowerCase())}`}
+                              href={`/browse?genre=${name.toLowerCase()}`}
                             />
                           }
                           size="xs"

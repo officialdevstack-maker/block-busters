@@ -61,7 +61,7 @@ export function MediaRow({ title, eyebrow, movies }: MediaRowProps) {
           <Button
             className="h-8 rounded-full px-3 text-xs normal-case tracking-normal"
             nativeButton={false}
-            render={<Link href={`/?collection=${slugify(title)}`} />}
+            render={<Link href={`/browse?collection=${slugify(title)}`} />}
             size="sm"
             variant="ghost"
           >

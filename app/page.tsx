@@ -100,7 +100,7 @@ export default function Page() {
     <div className="min-h-screen">
       <SiteHeader />
       <main id="discover" className="grid grid-cols-1 items-start gap-3 p-3 md:grid-cols-5">
-        <div className="hidden md:block">
+        <div className="hidden md:sticky md:top-20 md:block md:self-start">
           <DiscoverSidebar />
         </div>
         <div className="space-y-10 md:col-span-4">
