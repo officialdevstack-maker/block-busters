@@ -20,6 +20,27 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Authentication
+
+Block Busters uses Spurs Accounts for sign-in. Add these variables to `.env`.
+The client ID and secret can also use the existing `CLIENT_ID` and
+`CLIENT_SECRET` variable names.
+
+```env
+APP_URL=http://localhost:3000
+SPURS_CLIENT_ID=your-spurs-client-id
+SPURS_CLIENT_SECRET=your-spurs-client-secret
+SPURS_SESSION_SECRET=your-random-session-secret
+```
+
+Generate a session secret with
+`node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+Use an HTTPS `APP_URL` and a unique secret in production. Register
+`<APP_URL>/auth/callback` as the app's Spurs Accounts redirect URI.
+
+Movie discovery and title pages remain public. Comments and likes require sign-in,
+and `/account` redirects signed-out visitors through Spurs SSO.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

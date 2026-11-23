@@ -1,8 +1,7 @@
-import { createSpursProxy } from "@spurs/auth/next";
+import { spurs } from "@/lib/auth";
 
-// (Next 16 renamed the `middleware` convention to `proxy`.)
-export const proxy = createSpursProxy();
+export const proxy = spurs.proxy;
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/account/:path*"],
 };

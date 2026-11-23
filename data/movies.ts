@@ -7,6 +7,8 @@ export type Movie = {
   image: string
   accent: string
   type: "movie" | "series"
+  description?: string
+  videoUrl?: string
 }
 
 export const movies: Movie[] = [
