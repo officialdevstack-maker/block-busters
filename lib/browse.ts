@@ -1,4 +1,7 @@
-import { movies, type Movie } from "@/data/movies"
+import type { Movie } from "@/data/movies"
+import { getAllTitles } from "@/lib/titles"
+
+export { slugify } from "@/lib/slugify"
 
 export type BrowseParams = {
   genre?: string
@@ -17,16 +20,18 @@ export const sorts = [
   { value: "az", label: "A-Z" },
 ]
 
-export const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
+export async function getTitles({
+  genre,
+  q,
+  sort,
+  category,
+}: BrowseParams): Promise<Movie[]> {
+  let list = await getAllTitles()
 
-export function getTitles({ genre, q, sort, category }: BrowseParams): Movie[] {
-  let list = [...movies]
-
-  if (category) list = list.filter((movie) => movie.type === category)
+  if (category) {
+    const type = category === "movies" ? "movie" : "series"
+    list = list.filter((movie) => movie.type === type)
+  }
   if (genre) list = list.filter((movie) => movie.genre.toLowerCase() === genre.toLowerCase())
   if (q) list = list.filter((movie) => movie.title.toLowerCase().includes(q.toLowerCase()))
 

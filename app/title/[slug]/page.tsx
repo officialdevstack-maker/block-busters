@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
+import { connection } from "next/server"
 import { Plus, Share2, Star } from "lucide-react"
 
 import { Comments, type Comment } from "@/components/comments"
@@ -8,22 +9,21 @@ import { RelatedList } from "@/components/related-list"
 import { SiteHeader } from "@/components/site-header"
 import { VideoPlayer } from "@/components/video-player"
 import { Button } from "@/components/ui/button"
-import { movies } from "@/data/movies"
-import { slugify } from "@/lib/browse"
-import { SAMPLE_VIDEO, getMovie, getRelated } from "@/lib/titles"
+import { Skeleton } from "@/components/ui/skeleton"
+import { getMovie, getRelated } from "@/lib/titles"
 import { spurs } from "@/lib/auth"
 
 type Props = { params: Promise<{ slug: string }> }
 
-export function generateStaticParams() {
-  return movies.map((movie) => ({ slug: slugify(movie.title) }))
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const movie = getMovie(slug)
+  const title = slug
+    .split("-")
+    .filter(Boolean)
+    .map((word) => `${word[0].toUpperCase()}${word.slice(1)}`)
+    .join(" ")
   return {
-    title: movie ? `${movie.title} (${movie.year}) · Block Busters` : "Not found",
+    title: `${title} · Block Busters`,
   }
 }
 
@@ -44,23 +44,28 @@ async function AuthenticatedComments() {
   )
 }
 
-export default async function TitlePage({ params }: Props) {
+async function TitleContent({ params }: Props) {
+  await connection()
   const { slug } = await params
-  const movie = getMovie(slug)
+  const movie = await getMovie(slug)
   if (!movie) notFound()
 
-  const related = getRelated(movie)
+  const related = await getRelated(movie)
 
   return (
-    <div className="min-h-screen">
-      <SiteHeader />
-
-      <VideoPlayer
-        id={slug}
-        poster={movie.image}
-        src={movie.videoUrl ?? SAMPLE_VIDEO}
-        title={movie.title}
-      />
+    <>
+      {movie.videoUrl ? (
+        <VideoPlayer
+          id={slug}
+          poster={movie.image}
+          src={movie.videoUrl}
+          title={movie.title}
+        />
+      ) : (
+        <div className="flex aspect-video w-full items-center justify-center bg-zinc-950 text-sm text-muted-foreground">
+          Not available yet
+        </div>
+      )}
 
       <main className="mx-auto grid max-w-7xl gap-8 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-8">
@@ -98,13 +103,24 @@ export default async function TitlePage({ params }: Props) {
             </p>
           </section>
 
-          <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
+          <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
             <AuthenticatedComments />
           </Suspense>
         </div>
 
         <RelatedList movies={related} />
       </main>
+    </>
+  )
+}
+
+export default function TitlePage({ params }: Props) {
+  return (
+    <div className="min-h-screen">
+      <SiteHeader />
+      <Suspense fallback={<div className="aspect-video w-full animate-pulse bg-zinc-900" />}>
+        <TitleContent params={params} />
+      </Suspense>
     </div>
   )
 }

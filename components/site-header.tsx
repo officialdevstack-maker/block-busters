@@ -17,8 +17,6 @@ async function AccountMenu() {
       accent="#eab308"
       className="shrink-0"
       signOutUrl={spurs.signOutUrl()}
-  // appUrl: "https://node-accounts-backend.onrender.com",
-      signInUrl=''
       style={{ borderRadius: '9999px', color: '#111827' }}
       theme="dark"
       user={user}

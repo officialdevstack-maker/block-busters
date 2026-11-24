@@ -9,7 +9,7 @@ export function MovieCard({ movie }: { movie: Movie }) {
   return (
     <Link
       className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand"
-      href={`/title/${slugify(movie.title)}`}
+      href={`/title/${movie.slug ?? slugify(movie.title)}`}
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-zinc-900">
         <Image

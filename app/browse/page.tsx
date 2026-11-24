@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+import { connection } from "next/server"
 import Link from "next/link"
 
 import { MovieCard } from "@/components/movie-card"
@@ -22,7 +23,8 @@ async function Results({
   searchParams: Promise<Record<string, string | undefined>>
 }) {
   const params = (await searchParams) as BrowseParams
-  const titles = getTitles(params)
+  await connection()
+  const titles = await getTitles(params)
   const heading = params.genre
     ? `${params.genre[0].toUpperCase()}${params.genre.slice(1)}`
     : params.q

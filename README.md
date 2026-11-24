@@ -35,8 +35,19 @@ SPURS_SESSION_SECRET=your-random-session-secret
 
 Generate a session secret with
 `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
-Use an HTTPS `APP_URL` and a unique secret in production. Register
-`<APP_URL>/auth/callback` as the app's Spurs Accounts redirect URI.
+The Next.js adapter sends `${APP_URL}/auth/callback` as the OIDC
+`redirect_uri` (the `/auth` route prefix is the adapter default). Register that
+exact URL in the Spurs Accounts client's redirect URIs for each environment.
+For example, register `http://localhost:3000/auth/callback` for local
+development and `https://your-production-domain/auth/callback` in production.
+The scheme, hostname, port, and path must match exactly; use the public app
+origin for `APP_URL`, not the Spurs Accounts issuer. Use an HTTPS `APP_URL` and
+a unique session secret in production.
+
+If Accounts reports that `redirect_uri` is not registered, compare the
+`redirect_uri` query parameter in the authorization request with the redirect
+URI saved on that client. Update the client's registration to match; do not
+disable the exact-match check.
 
 Movie discovery and title pages remain public. Comments and likes require sign-in,
 and `/account` redirects signed-out visitors through Spurs SSO. Comment and like

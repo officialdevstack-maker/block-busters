@@ -68,6 +68,7 @@ export function VideoPlayer({ id, src, poster, title }: VideoPlayerProps) {
     side: "l" | "r"
     k: number
   } | null>(null)
+  const [sourceRetry, setSourceRetry] = React.useState(0)
 
   const showControls = React.useCallback(() => {
     setVisible(true)
@@ -149,7 +150,7 @@ export function VideoPlayer({ id, src, poster, title }: VideoPlayerProps) {
 
   const retry = () => {
     setError(false)
-    videoRef.current?.load()
+    setSourceRetry((retryCount) => retryCount + 1)
   }
 
   React.useEffect(() => {
@@ -166,6 +167,49 @@ export function VideoPlayer({ id, src, poster, title }: VideoPlayerProps) {
       }
     } catch {}
   }, [])
+
+  React.useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    let cancelled = false
+    let hls: import("hls.js").default | undefined
+    const isHls = src.split(/[?#]/, 1)[0].toLowerCase().endsWith(".m3u8")
+    setError(false)
+
+    if (!isHls || video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src
+    } else {
+      import("hls.js")
+        .then(({ default: Hls }) => {
+          if (cancelled) return
+          if (!Hls.isSupported()) {
+            setError(true)
+            return
+          }
+
+          hls = new Hls({ capLevelToPlayerSize: true })
+          hls.loadSource(src)
+          hls.attachMedia(video)
+          hls.on(Hls.Events.ERROR, (_event, data) => {
+            if (!data.fatal) return
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls?.startLoad()
+            else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls?.recoverMediaError()
+            else setError(true)
+          })
+        })
+        .catch(() => {
+          if (!cancelled) setError(true)
+        })
+    }
+
+    return () => {
+      cancelled = true
+      hls?.destroy()
+      video.removeAttribute("src")
+      video.load()
+    }
+  }, [sourceRetry, src])
 
   const saveProgress = (time: number) => {
     try {
@@ -352,7 +396,6 @@ export function VideoPlayer({ id, src, poster, title }: VideoPlayerProps) {
           playsInline
           poster={poster}
           preload="metadata"
-          src={src}
         />
 
         <div

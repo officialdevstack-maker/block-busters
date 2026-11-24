@@ -14,7 +14,7 @@ export function RelatedList({ movies }: { movies: Movie[] }) {
           <li key={movie.title}>
             <Link
               className="group flex gap-3 rounded-xl p-1.5 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand"
-              href={`/title/${slugify(movie.title)}`}
+              href={`/title/${movie.slug ?? slugify(movie.title)}`}
             >
               <div className="relative aspect-video w-36 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
                 <Image
