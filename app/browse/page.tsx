@@ -3,6 +3,8 @@ import { connection } from "next/server"
 import Link from "next/link"
 
 import { MovieCard } from "@/components/movie-card"
+import { NoResults } from "@/components/no-results"
+import { SlowConnectionNotice } from "@/components/slow-connection-notice"
 import { SiteHeader } from "@/components/site-header"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -82,13 +84,7 @@ async function Results({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border py-20 text-center">
-          <p className="font-medium">Nothing found</p>
-          <p className="mt-1 text-sm text-muted-foreground">Try a different genre or search term.</p>
-          <Link className="mt-4 inline-block text-sm text-brand underline-offset-4 hover:underline" href="/browse">
-            Clear filters
-          </Link>
-        </div>
+        <NoResults params={params} />
       )}
     </>
   )
@@ -104,6 +100,7 @@ function ResultsSkeleton() {
           <Skeleton className="aspect-[2/3] rounded-xl" key={index} />
         ))}
       </div>
+      <SlowConnectionNotice />
     </div>
   )
 }

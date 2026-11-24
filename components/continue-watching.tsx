@@ -4,6 +4,7 @@ import Image from "next/image"
 import { Play } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { StateScreen } from "@/components/state-screen"
 import { Card } from "@/components/ui/card"
 import type { Movie } from "@/data/movies"
 
@@ -15,6 +16,17 @@ const progressValues = [68, 42, 81, 27]
 
 export function ContinueWatching({ movies }: ContinueWatchingProps) {
   const watching = movies.slice(0, 4)
+
+  if (watching.length === 0) {
+    return (
+      <StateScreen
+        compact
+        icon={Play}
+        title="Nothing to continue yet"
+        description="Start a title and it will appear here so you can pick up where you left off."
+      />
+    )
+  }
 
   return (
     <Card className="rounded-2xl py-5">

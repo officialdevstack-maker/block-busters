@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { connection } from 'next/server'
 import { DiscoverSidebar } from '@/components/discover-sidebar'
 import { AppBanner } from '@/components/app-banner'
@@ -129,9 +128,7 @@ export default function Page() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <Suspense fallback={<div className="min-h-[65vh] animate-pulse bg-muted/20" />}>
-        <HomeCatalog />
-      </Suspense>
+      <HomeCatalog />
       <footer className="border-t border-border px-6 py-5">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
           <p>© 2026 Block Busters</p>

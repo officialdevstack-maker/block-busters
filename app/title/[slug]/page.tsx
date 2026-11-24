@@ -118,9 +118,7 @@ export default function TitlePage({ params }: Props) {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <Suspense fallback={<div className="aspect-video w-full animate-pulse bg-zinc-900" />}>
-        <TitleContent params={params} />
-      </Suspense>
+      <TitleContent params={params} />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 
+import { SlowConnectionNotice } from "@/components/slow-connection-notice";
 import { spurs } from "@/lib/auth";
 
 async function AccountDetails() {
@@ -35,7 +36,14 @@ export default function AccountPage() {
       <Link className="text-sm text-muted-foreground transition-colors hover:text-foreground" href="/">
         Back to Block Busters
       </Link>
-      <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-muted" />}>
+      <Suspense
+        fallback={
+          <>
+            <div className="h-48 animate-pulse rounded-2xl bg-muted" />
+            <SlowConnectionNotice />
+          </>
+        }
+      >
         <AccountDetails />
       </Suspense>
     </main>
