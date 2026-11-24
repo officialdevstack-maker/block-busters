@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
-    "@spurs/auth": "github:officialdevstack-maker/node-accounts-js-sdk#v3.0.0",
+    "@spurs/auth": "github:officialdevstack-maker/node-accounts-js-sdk#v5.0.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "embla-carousel-react": "^8.6.0",

@@ -10,9 +10,38 @@ import { HeaderSearch } from '@/components/header-search'
 import { MobileNav } from '@/components/mobile-nav'
 import { spurs } from '@/lib/auth'
 
-export async function SiteHeader() {
+async function AccountMenu() {
   const user = await spurs.getUser()
+  return (
+    <SpursAccountMenu
+      accent="#eab308"
+      className="shrink-0"
+      signOutUrl={spurs.signOutUrl()}
+  // appUrl: "https://node-accounts-backend.onrender.com",
+      signInUrl=''
+      style={{ borderRadius: '9999px', color: '#111827' }}
+      theme="dark"
+      user={user}
+    >
+      {user ? (
+        <a
+          href="/account"
+          style={{
+            color: '#f9fafb',
+            display: 'block',
+            fontSize: 14,
+            padding: '12px 20px',
+            textDecoration: 'none',
+          }}
+        >
+          Block Busters account
+        </a>
+      ) : null}
+    </SpursAccountMenu>
+  )
+}
 
+export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 text-foreground backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="relative mx-auto flex max-w-7xl flex-wrap items-center gap-x-2 px-3 sm:gap-x-3 sm:px-4 lg:flex-nowrap lg:gap-x-4">
@@ -52,29 +81,9 @@ export async function SiteHeader() {
             <Bookmark aria-hidden="true" className="size-4" />
             <span className="hidden xl:inline">My list</span>
           </Button>
-          <SpursAccountMenu
-            accent="#eab308"
-            className="shrink-0"
-            signOutUrl={spurs.signOutUrl()}
-            style={{ borderRadius: '9999px', color: '#111827' }}
-            theme="dark"
-            user={user}
-          >
-            {user ? (
-              <a
-                href="/account"
-                style={{
-                  color: '#f9fafb',
-                  display: 'block',
-                  fontSize: 14,
-                  padding: '12px 20px',
-                  textDecoration: 'none',
-                }}
-              >
-                Block Busters account
-              </a>
-            ) : null}
-          </SpursAccountMenu>
+          <Suspense fallback={<div className="h-10 w-24 rounded-full bg-muted" />}>
+            <AccountMenu />
+          </Suspense>
         </div>
       </div>
     </header>

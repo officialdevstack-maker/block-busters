@@ -39,7 +39,8 @@ Use an HTTPS `APP_URL` and a unique secret in production. Register
 `<APP_URL>/auth/callback` as the app's Spurs Accounts redirect URI.
 
 Movie discovery and title pages remain public. Comments and likes require sign-in,
-and `/account` redirects signed-out visitors through Spurs SSO.
+and `/account` redirects signed-out visitors through Spurs SSO. Comment and like
+interactions remain in-memory demo behavior and are not persisted.
 
 ## Learn More
 

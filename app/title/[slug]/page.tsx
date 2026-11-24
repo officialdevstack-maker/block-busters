@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 import { Plus, Share2, Star } from "lucide-react"
 
 import { Comments, type Comment } from "@/components/comments"
@@ -32,12 +33,22 @@ const mockComments: Comment[] = [
   { id: "3", author: "Amina Bello", body: "Anyone know if there's a sequel planned?", time: "3 days ago", likes: 3 },
 ]
 
+async function AuthenticatedComments() {
+  const user = await spurs.getUser()
+  return (
+    <Comments
+      authenticated={Boolean(user)}
+      initial={mockComments}
+      userName={user?.name || user?.email || "You"}
+    />
+  )
+}
+
 export default async function TitlePage({ params }: Props) {
   const { slug } = await params
   const movie = getMovie(slug)
   if (!movie) notFound()
 
-  const user = await spurs.getUser()
   const related = getRelated(movie)
 
   return (
@@ -87,11 +98,9 @@ export default async function TitlePage({ params }: Props) {
             </p>
           </section>
 
-          <Comments
-            authenticated={Boolean(user)}
-            initial={mockComments}
-            userName={user?.name || user?.email || "You"}
-          />
+          <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-muted" />}>
+            <AuthenticatedComments />
+          </Suspense>
         </div>
 
         <RelatedList movies={related} />
