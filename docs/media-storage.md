@@ -1,82 +1,101 @@
-# Movie database and media storage
+# Block Busters media and worker
 
-The catalog is stored in PostgreSQL. Video uploads go directly from an
-administrator's browser or script to Backblaze B2; playback uses an HLS
-playlist produced separately with FFmpeg.
+Block Busters owns its PostgreSQL schema and B2 access. Admin 2 proxies
+management requests to the Block Busters internal API; video and image bytes
+move directly from the browser to B2 using presigned URLs.
 
-## Configure
+## Buckets and credentials
 
-Copy the database and B2 variables from `.env.example` into `.env` and fill in
-the values from your PostgreSQL provider and B2 bucket. `MEDIA_PUBLIC_URL` must
-be the public HTTPS origin that serves the bucket, without a trailing slash.
-Keep the B2 application key and database URL server-side; never expose them as
-`NEXT_PUBLIC_` variables.
+Use separate buckets because B2 visibility is configured per bucket:
 
-Configure the bucket's CORS rules to allow your app origin and local
-development origin, the `GET`, `HEAD`, and `PUT` methods, and the headers used
-by signed uploads. Restrict origins before launch.
+- `B2_PRIVATE_BUCKET` stores raw files at `sources/<videoId>.<ext>`.
+- `B2_PUBLIC_BUCKET` stores HLS at `videos/<videoId>/...` and artwork under
+  `posters/` and `backdrops/`.
+- `MEDIA_PUBLIC_URL` is the HTTPS CDN origin for the public bucket only.
 
-## Create and seed the catalog
+The Block Busters app key is server-only and can read/write/delete objects in
+both buckets. The worker key can read/delete from the private bucket and
+write to the public bucket. Admin 2 holds no B2 keys.
 
-```powershell
-npm run db:push
-npm run db:seed
-```
+Configure bucket CORS explicitly. The private bucket must allow the Admin 2
+origins and `http://localhost:3000`, methods `PUT`, `GET`, and `HEAD`, headers
+`*`, and expose `ETag` for multipart uploads. The public bucket must allow the
+Block Busters and Admin 2 origins plus localhost, methods `GET`, `HEAD`, and
+`PUT`, headers `*`. Restrict origins before launch.
 
-The seed command inserts the existing sample titles without replacing records
-that already exist. Poster URLs remain at their current public locations until
-you upload posters and set `poster_key` for a title.
+## Schema and seed data
 
-## Upload and publish a video
-
-An authenticated administrator whose email is in `ADMIN_EMAILS` can request a
-direct upload URL with `POST /api/admin/upload` and JSON `{ "titleId": "..." }`.
-The response contains an `uploadUrl` and `videoId`. `titleId` is the UUID from
-the `titles` table. Send the original MP4 to `uploadUrl` with an HTTP `PUT` and
-`Content-Type: video/mp4`.
-
-Download the source MP4 from B2, then create the variant output folders and
-transcode it to a VOD HLS ladder (1080p, 720p, and 480p) with FFmpeg:
+The base `titles` and `videos` tables must already exist. Apply the additive
+admin/media migration with:
 
 ```powershell
-$videoId = "<video-id>"
-aws s3 cp "s3://$($env:B2_BUCKET)/sources/$videoId.mp4" .\input.mp4 --endpoint-url $env:B2_ENDPOINT
-New-Item -ItemType Directory -Force .\out\v0, .\out\v1, .\out\v2 | Out-Null
-ffmpeg -i .\input.mp4 `
-  -filter_complex "[0:v]split=3[a][b][c];[a]scale=-2:1080[v0];[b]scale=-2:720[v1];[c]scale=-2:480[v2]" `
-  -map "[v0]" -map 0:a:0 -map "[v1]" -map 0:a:0 -map "[v2]" -map 0:a:0 `
-  -c:v libx264 -preset medium -profile:v main `
-  -b:v:0 5000k -maxrate:v:0 5350k -bufsize:v:0 7500k `
-  -b:v:1 2800k -maxrate:v:1 2996k -bufsize:v:1 4200k `
-  -b:v:2 1200k -maxrate:v:2 1284k -bufsize:v:2 1800k `
-  -c:a aac -b:a 128k -ac 2 -g 48 -keyint_min 48 -sc_threshold 0 `
-  -f hls -hls_time 6 -hls_playlist_type vod `
-  -hls_segment_filename "out/v%v/seg_%03d.ts" `
-  -master_pl_name master.m3u8 `
-  -var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2" "out/v%v/index.m3u8"
+npm run db:migrate
 ```
 
-Upload the output directory under `videos/<videoId>/` in B2, preserving the
-directory structure and setting a long-lived immutable cache header:
+For future schema changes, update `lib/db/schema.ts`, generate a migration with
+`npm run db:generate`, inspect the SQL, and apply it with `npm run db:migrate`.
+Do not use `db:push` for production. The sample seed titles are published demo
+records; titles created through Admin 2 start as drafts.
+
+## Admin API and uploads
+
+Admin 2 authenticates its users locally and signs a short-lived RSA identity
+for each API call. Block Busters verifies it with `ADMIN_IDENTITY_PUBLIC_KEY`
+and enforces the route permission. Configure the matching
+`BLOCKBUSTERS_ADMIN_IDENTITY_PRIVATE_KEY` and `BLOCKBUSTERS_API_URL` in Admin 2.
+`ADMIN_EMAILS` and a shared revalidation secret are not used.
+
+The Admin 2 title/video pages request upload plans from the Block Busters
+internal API. Files are uploaded directly to B2:
+
+- MP4, MOV, MKV and WebM sources up to 250 GB are accepted.
+- Files under 100 MB use a single presigned PUT.
+- Larger files use 25 MiB multipart parts, uploaded four at a time. The
+  browser collects each part's `ETag` and calls the complete endpoint.
+- Upload plans expire after one hour. Incomplete multipart uploads should be
+  removed from the private bucket by a one-day B2 lifecycle rule.
+- Posters and backdrops accept JPEG, PNG or WebP up to 5 MB.
+
+Do not pass file contents through either application server. The private
+bucket must not be public; only HLS and image objects belong in the public
+bucket.
+
+## Transcode worker
+
+Run one or more long-lived Node processes with `ffmpeg`, `ffprobe`, and the
+worker-specific PostgreSQL/B2 credentials. The process claims rows with
+`FOR UPDATE SKIP LOCKED`, downloads the source to a temporary directory,
+creates a VOD HLS ladder, uploads playlists and segments to the public bucket,
+then marks the video ready. It supports sources without audio and skips
+renditions above the source resolution. Failed jobs retry automatically up to
+three attempts; the sweeper recovers processing jobs locked for over two hours.
+
+Start the worker with:
 
 ```powershell
-$env:AWS_ACCESS_KEY_ID = $env:B2_KEY_ID
-$env:AWS_SECRET_ACCESS_KEY = $env:B2_APP_KEY
-aws s3 sync .\out "s3://$($env:B2_BUCKET)/videos/$videoId/" `
-  --endpoint-url $env:B2_ENDPOINT `
-  --cache-control "public, max-age=31536000, immutable"
+npm run worker
 ```
 
-Then mark the video row ready:
+Worker environment:
 
-```sql
-UPDATE videos
-SET hls_key = 'videos/<videoId>/master.m3u8', status = 'ready'
-WHERE id = '<videoId>';
+```env
+DATABASE_URL=postgresql://bb_worker:...@host/blockbusters
+B2_ENDPOINT=https://s3.<region>.backblazeb2.com
+B2_REGION=<region>
+B2_KEY_ID=<worker-key-id>
+B2_APP_KEY=<worker-key>
+B2_PRIVATE_BUCKET=bb-private
+B2_PUBLIC_BUCKET=bb-public
+BLOCKBUSTERS_URL=https://your-blockbusters-origin
+WORKER_SECRET=<same-secret-as-the-app>
 ```
 
-The title page only plays a video once a ready HLS playlist is attached. HLS
-playback uses native support when available and `hls.js` otherwise. The upload
-endpoint does not perform transcoding; run FFmpeg and the B2 sync from a
-trusted machine or add a background transcoding worker before accepting
-production uploads.
+Grant `bb_worker` only `SELECT` on `titles`, and `SELECT`/`UPDATE` on `videos`.
+The app's `WORKER_SECRET` must be at least 32 characters. The worker uses it
+only for `POST /api/internal/worker/revalidate`; do not expose that endpoint
+secret in browser or Admin 2 configuration.
+
+The worker keeps source files by default for possible re-encoding. HLS
+playlists use a short cache lifetime; segments are immutable. If a video
+becomes ready but cache revalidation fails, it remains ready and the worker
+logs the refresh failure.

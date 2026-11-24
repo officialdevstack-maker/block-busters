@@ -17,7 +17,8 @@ function formatDuration(minutes: number | null) {
 
 function toMovie(
   row: typeof titles.$inferSelect,
-  hlsKey?: string | null
+  hlsKey?: string | null,
+  durationSec?: number | null,
 ): Movie {
   return {
     slug: row.slug,
@@ -25,7 +26,9 @@ function toMovie(
     year: String(row.year),
     rating: row.rating?.toFixed(1) ?? "—",
     genre: row.genre,
-    duration: formatDuration(row.durationMin),
+    duration: formatDuration(
+      durationSec && durationSec > 0 ? Math.round(durationSec / 60) : row.durationMin,
+    ),
     image: row.posterKey ? mediaUrl(row.posterKey) : row.posterUrl ?? "",
     accent: row.accent ?? "#e7a91a",
     type: row.type,
@@ -59,7 +62,7 @@ export async function getMovie(slug: string): Promise<Movie | null> {
   if (!row) return null
 
   const [video] = await db
-    .select({ hlsKey: videos.hlsKey })
+    .select({ hlsKey: videos.hlsKey, durationSec: videos.durationSec })
     .from(videos)
     .where(
       and(
@@ -71,7 +74,7 @@ export async function getMovie(slug: string): Promise<Movie | null> {
     .orderBy(desc(videos.createdAt))
     .limit(1)
 
-  return toMovie(row, video?.hlsKey)
+  return toMovie(row, video?.hlsKey, video?.durationSec)
 }
 
 export async function getRelated(

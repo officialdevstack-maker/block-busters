@@ -1,4 +1,5 @@
 import { connection } from 'next/server'
+import { Suspense } from 'react'
 import { DiscoverSidebar } from '@/components/discover-sidebar'
 import { AppBanner } from '@/components/app-banner'
 import { ContinueWatching } from '@/components/continue-watching'
@@ -128,7 +129,9 @@ export default function Page() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <HomeCatalog />
+      <Suspense fallback={<main className="px-6 py-24 text-center text-muted-foreground">Loading titles…</main>}>
+        <HomeCatalog />
+      </Suspense>
       <footer className="border-t border-border px-6 py-5">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
           <p>© 2026 Block Busters</p>

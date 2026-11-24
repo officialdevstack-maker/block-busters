@@ -6,6 +6,8 @@ ALTER TABLE titles
   ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now(),
   ADD COLUMN IF NOT EXISTS admin_request_id uuid;
 --> statement-breakpoint
+UPDATE titles SET published = true WHERE published = false;
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS titles_admin_request_id_unique
   ON titles (admin_request_id);
 --> statement-breakpoint

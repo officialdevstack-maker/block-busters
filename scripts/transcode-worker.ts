@@ -119,11 +119,15 @@ function buildFfmpegArgs(input: string, output: string, height: number, hasAudio
 
   const args = ["-hide_banner", "-loglevel", "error", "-y", "-i", input, "-filter_complex", filterComplex]
   const variants: string[] = []
+  const maxRates = ["5350k", "2996k", "1284k"]
+  const bufferSizes = ["7500k", "4200k", "1800k"]
   for (let index = 0; index < targetHeights.length; index += 1) {
     args.push("-map", `[v${index}]`)
     if (hasAudio) args.push("-map", "0:a:0")
     const bitrate = targetHeights[index] >= 1000 ? "5000k" : targetHeights[index] >= 700 ? "2800k" : "1200k"
     args.push(`-b:v:${index}`, bitrate)
+    args.push(`-maxrate:v:${index}`, maxRates[index] ?? "1284k")
+    args.push(`-bufsize:v:${index}`, bufferSizes[index] ?? "1800k")
     if (hasAudio) args.push(`-b:a:${index}`, "128k")
     variants.push(hasAudio ? `v:${index},a:${index}` : `v:${index}`)
   }
@@ -220,10 +224,6 @@ async function processJob(job: VideoJob) {
            error_message = NULL, locked_at = NULL
        WHERE id = $1`,
       [job.id, `videos/${job.id}/master.m3u8`, Math.round(duration)],
-    )
-    await pool.query(
-      `UPDATE titles SET duration_min = $2, updated_at = now() WHERE id = $1`,
-      [job.title_id, Math.max(1, Math.round(duration / 60))],
     )
     try {
       await notifyRevalidation(job.slug)

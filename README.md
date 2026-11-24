@@ -22,7 +22,9 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Authentication
 
-Block Busters uses Spurs Accounts for sign-in. Add these variables to `.env`.
+Viewer sign-in uses Spurs Accounts. Admin users do not sign in to Block Busters;
+content management lives in the existing Admin 2 panel and uses short-lived
+signed admin identities for the internal API. Add these variables to `.env`.
 The client ID and secret can also use the existing `CLIENT_ID` and
 `CLIENT_SECRET` variable names.
 
@@ -52,6 +54,30 @@ disable the exact-match check.
 Movie discovery and title pages remain public. Comments and likes require sign-in,
 and `/account` redirects signed-out visitors through Spurs SSO. Comment and like
 interactions remain in-memory demo behavior and are not persisted.
+
+## Block Busters administration
+
+Admin 2 calls Block Busters' `/api/internal/admin/*` API. It does not connect to
+the Block Busters database or hold B2 credentials. Configure these server-only
+Block Busters variables in addition to `DATABASE_URL`:
+
+```env
+ADMIN_IDENTITY_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
+WORKER_SECRET=replace-with-at-least-32-random-characters
+B2_PRIVATE_BUCKET=bb-private
+B2_PUBLIC_BUCKET=bb-public
+```
+
+In Admin 2, configure `BLOCKBUSTERS_API_URL` and
+`BLOCKBUSTERS_ADMIN_IDENTITY_PRIVATE_KEY` with the corresponding Block Busters
+origin and RSA private key. Use a separate public/private key pair for this
+service (the key pair generation steps are in the Admin 2 README). Never
+configure the private key in Block Busters or expose either key to browser code.
+The existing Spurs Accounts callback above is for viewer sign-in only.
+
+Apply the Block Busters schema migration and start the transcode worker as
+described in [media-storage.md](./docs/media-storage.md). New titles are drafts;
+publishing requires a ready video.
 
 ## Learn More
 

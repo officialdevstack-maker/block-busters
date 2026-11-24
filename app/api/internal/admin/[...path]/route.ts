@@ -85,6 +85,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+function isUniqueViolation(error: unknown) {
+  return isRecord(error) && error.code === "23505"
+}
+
+function hasKey<T extends object>(values: T, key: string): key is Extract<keyof T, string> {
+  return Object.prototype.hasOwnProperty.call(values, key)
+}
+
+function isStorageObjectMissing(error: unknown) {
+  if (!isRecord(error)) return false
+  const metadata = isRecord(error.$metadata) ? error.$metadata : null
+  return (
+    error.name === "NoSuchUpload" ||
+    error.name === "NotFound" ||
+    error.name === "NoSuchKey" ||
+    metadata?.httpStatusCode === 404
+  )
+}
+
 async function readJson(request: Request) {
   try {
     return await request.json() as unknown
@@ -95,6 +114,10 @@ async function readJson(request: Request) {
 
 function routeRule(method: Method, path: string[]): RouteRule | null {
   const subpath = path.join("/")
+  if (
+    (path[0] === "titles" && path.length > 1 && !uuidPattern.test(path[1])) ||
+    (path[0] === "videos" && path.length > 1 && !uuidPattern.test(path[1]))
+  ) return null
   if (
     method === "GET" &&
     (subpath === "stats" || subpath === "titles" || subpath === "queue")
@@ -258,7 +281,7 @@ async function listTitles(request: Request) {
   const filters: SQL[] = []
   if (q) filters.push(ilike(titles.title, `%${q}%`))
   if (genre) filters.push(eq(titles.genre, genre))
-  if (type) filters.push(eq(titles.type, type))
+  if (type) filters.push(eq(titles.type, type as "movie" | "series"))
   if (published) filters.push(eq(titles.published, published === "true"))
   if (cursor) {
     if (!uuidPattern.test(cursor)) return json({ message: "Invalid cursor." }, 400)
@@ -392,8 +415,13 @@ async function createTitle(body: unknown, identity: RouteIdentity) {
     const revalidated = revalidateTitleTags([created.slug])
     return json({ data: titlePublicData(created), before: null, revalidated }, 201)
   } catch (error) {
-    console.error("Could not create Block Busters title:", error)
-    return json({ message: "Could not create the title." }, 409)
+    if (isUniqueViolation(error)) {
+      const [retried] = await db.select().from(titles)
+        .where(eq(titles.adminRequestId, identity.requestId!)).limit(1)
+      if (retried) return json({ data: titlePublicData(retried), before: null, idempotent: true })
+      return json({ message: "A title with this slug already exists." }, 409)
+    }
+    throw error
   }
 }
 
@@ -445,7 +473,7 @@ async function deleteTitle(id: string, body: unknown) {
   }
   const attachedVideos = await db.select({ id: videos.id, sourceKey: videos.sourceKey })
     .from(videos).where(eq(videos.titleId, id))
-  let publicKeys: string[] = []
+  const publicKeys: string[] = []
   let listingFailed = false
   for (const video of attachedVideos) {
     try {
@@ -491,27 +519,14 @@ async function initializeUpload(body: unknown, identity: RouteIdentity) {
     typeof titleId !== "string" || !uuidPattern.test(titleId) ||
     typeof filename !== "string" || filename.length > 255 ||
     typeof size !== "number" || !Number.isSafeInteger(size) || size < 1 || size > maxUploadSize ||
-    typeof contentType !== "string" || !(contentType in videoTypes)
+    typeof contentType !== "string" || !hasKey(videoTypes, contentType)
   ) return json({ message: "Valid titleId, filename, size and supported contentType are required." }, 422)
 
   const db = getDb()
   const [existingRequest] = await db.select().from(videos)
     .where(eq(videos.adminRequestId, identity.requestId!)).limit(1)
   if (existingRequest) {
-    const extension = videoTypes[existingRequest.contentType as keyof typeof videoTypes]
-    if (!extension || !existingRequest.contentType) {
-      return json({ message: "The existing upload cannot be resumed." }, 409)
-    }
-    const key = `sources/${existingRequest.id}.${extension}`
-    if (existingRequest.uploadId) {
-      const count = Math.ceil((existingRequest.sourceSize ?? 0) / partSize)
-      const parts = await Promise.all(Array.from({ length: count }, async (_, index) => ({
-        PartNumber: index + 1,
-        url: await presignSourcePart(key, existingRequest.uploadId!, index + 1),
-      })))
-      return json({ data: { videoId: existingRequest.id, uploadId: existingRequest.uploadId, partSize, parts }, before: null, idempotent: true })
-    }
-    return json({ data: { videoId: existingRequest.id, uploadId: null, uploadUrl: await presignSourceUpload(key, existingRequest.contentType ?? contentType) }, before: null, idempotent: true })
+    return await existingUploadPlan(existingRequest)
   }
   const [title] = await db.select({ id: titles.id }).from(titles).where(eq(titles.id, titleId)).limit(1)
   if (!title) return json({ message: "Title not found." }, 404)
@@ -546,6 +561,11 @@ async function initializeUpload(body: unknown, identity: RouteIdentity) {
         console.error("Could not abort duplicate Block Busters multipart upload:", abortError)
       }
     }
+    if (isUniqueViolation(error)) {
+      const [retried] = await db.select().from(videos)
+        .where(eq(videos.adminRequestId, identity.requestId!)).limit(1)
+      if (retried) return await existingUploadPlan(retried)
+    }
     throw error
   }
   const plan = multipart
@@ -560,6 +580,31 @@ async function initializeUpload(body: unknown, identity: RouteIdentity) {
       }
     : { videoId, uploadId: null, uploadUrl: await presignSourceUpload(key, contentType) }
   return json({ data: plan, before: null }, 201)
+}
+
+async function existingUploadPlan(video: typeof videos.$inferSelect) {
+  if (video.status !== "uploading") {
+    return json({
+      data: { videoId: video.id, status: video.status },
+      before: null,
+      idempotent: true,
+    })
+  }
+  const contentType = video.contentType
+  const extension = contentType && videoTypes[contentType as keyof typeof videoTypes]
+  if (!extension || !contentType || !video.sourceSize) {
+    return json({ message: "The existing upload cannot be resumed." }, 409)
+  }
+  const key = `sources/${video.id}.${extension}`
+  if (video.uploadId) {
+    const count = Math.ceil(video.sourceSize / partSize)
+    const parts = await Promise.all(Array.from({ length: count }, async (_, index) => ({
+      PartNumber: index + 1,
+      url: await presignSourcePart(key, video.uploadId!, index + 1),
+    })))
+    return json({ data: { videoId: video.id, uploadId: video.uploadId, partSize, parts }, before: null, idempotent: true })
+  }
+  return json({ data: { videoId: video.id, uploadId: null, uploadUrl: await presignSourceUpload(key, contentType) }, before: null, idempotent: true })
 }
 
 async function completeUpload(body: unknown, identity: RouteIdentity) {
@@ -590,11 +635,26 @@ async function completeUpload(body: unknown, identity: RouteIdentity) {
     if (parts.some((part, index) => part.PartNumber !== index + 1)) {
       return json({ message: "Multipart part numbers must be continuous from 1." }, 422)
     }
-    await completeSourceMultipartUpload(video.sourceKey, video.uploadId, parts)
+    try {
+      await completeSourceMultipartUpload(video.sourceKey, video.uploadId, parts)
+    } catch (error) {
+      if (!isStorageObjectMissing(error)) throw error
+      const completedSize = await getSourceObjectSize(video.sourceKey).catch((headError: unknown) => {
+        if (isStorageObjectMissing(headError)) return undefined
+        throw headError
+      })
+      if (completedSize !== video.sourceSize) throw error
+    }
   } else if (body.uploadId !== undefined && body.uploadId !== null) {
     return json({ message: "This video does not have a multipart upload." }, 422)
   }
-  const actualSize = await getSourceObjectSize(video.sourceKey)
+  const actualSize = await getSourceObjectSize(video.sourceKey).catch((error: unknown) => {
+    if (isStorageObjectMissing(error)) return undefined
+    throw error
+  })
+  if (actualSize === undefined) {
+    return json({ message: "The uploaded source file was not found in storage." }, 409)
+  }
   if (actualSize !== video.sourceSize) {
     return json({ message: "Uploaded file size does not match the initialized upload." }, 409)
   }
@@ -628,7 +688,7 @@ async function presignImage(body: unknown) {
   if (
     typeof titleId !== "string" || !uuidPattern.test(titleId) ||
     (kind !== "poster" && kind !== "backdrop") ||
-    typeof contentType !== "string" || !(contentType in imageTypes) ||
+    typeof contentType !== "string" || !hasKey(imageTypes, contentType) ||
     typeof size !== "number" || !Number.isSafeInteger(size) || size < 1 || size > 5 * 1024 * 1024
   ) return json({ message: "A title, poster/backdrop kind, supported image type and size up to 5 MB are required." }, 422)
   const [title] = await getDb().select({ id: titles.id }).from(titles).where(eq(titles.id, titleId)).limit(1)

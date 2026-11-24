@@ -2,13 +2,6 @@ import "server-only"
 
 import { importSPKI, jwtVerify } from "jose"
 
-const permissions = new Set([
-  "blockbusters.view",
-  "blockbusters.write",
-  "blockbusters.publish",
-  "blockbusters.delete",
-])
-
 let verificationKey: ReturnType<typeof importSPKI> | undefined
 
 async function getVerificationKey() {
@@ -58,7 +51,8 @@ export async function verifyAdminIdentity(
     ? payload.permissions.filter((value): value is string => typeof value === "string")
     : []
   if (
-    claimedPermissions.some((permission) => !permissions.has(permission) && permission !== "*") ||
+    !Array.isArray(payload.permissions) ||
+    payload.permissions.some((value) => typeof value !== "string") ||
     (!claimedPermissions.includes("*") && !claimedPermissions.includes(requiredPermission))
   ) {
     return { error: "Missing required permission.", status: 403 as const }
@@ -74,6 +68,7 @@ export async function verifyAdminIdentity(
       requestId !== payload.jti ||
       !/^[0-9a-f-]{36}$/i.test(requestId) ||
       !reason ||
+      reason.length < 3 ||
       reason.length > 1000
     ) {
       return { error: "A valid audit reason and request ID are required.", status: 400 as const }
