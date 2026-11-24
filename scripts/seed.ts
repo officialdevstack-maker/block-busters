@@ -29,6 +29,7 @@ async function seed() {
         posterUrl: movie.image,
         accent: movie.accent,
         sortOrder,
+        published: true,
       }))
     )
     .onConflictDoNothing({ target: titles.slug })

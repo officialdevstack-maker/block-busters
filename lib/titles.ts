@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, isNotNull } from "drizzle-orm"
+import { cacheTag } from "next/cache"
 
 import type { Movie } from "@/data/movies"
 import { getDb } from "@/lib/db"
@@ -34,20 +35,25 @@ function toMovie(
 }
 
 export async function getAllTitles(): Promise<Movie[]> {
+  "use cache"
+  cacheTag("titles")
   const rows = await getDb()
     .select()
     .from(titles)
+    .where(eq(titles.published, true))
     .orderBy(asc(titles.sortOrder), asc(titles.createdAt))
 
   return rows.map((row) => toMovie(row))
 }
 
 export async function getMovie(slug: string): Promise<Movie | null> {
+  "use cache"
+  cacheTag("titles", `title:${slug}`)
   const db = getDb()
   const [row] = await db
     .select()
     .from(titles)
-    .where(eq(titles.slug, slug))
+    .where(and(eq(titles.slug, slug), eq(titles.published, true)))
     .limit(1)
 
   if (!row) return null
