@@ -183,6 +183,9 @@ function parseTitleFields(value: Record<string, unknown>, creating: boolean, tit
       return { error: "Title must be between 1 and 200 characters." }
     }
     fields.title = value.title.trim()
+    if ("slug" in value && typeof value.slug !== "string") {
+      return { error: "Slug must be a string." }
+    }
     const slug = typeof value.slug === "string" ? slugify(value.slug) : slugify(value.title)
     if (!slug || slug.length > 200) return { error: "A valid slug is required." }
     fields.slug = slug
@@ -280,7 +283,7 @@ async function listTitles(request: Request) {
 
   const filters: SQL[] = []
   if (q) filters.push(ilike(titles.title, `%${q}%`))
-  if (genre) filters.push(eq(titles.genre, genre))
+  if (genre) filters.push(ilike(titles.genre, genre))
   if (type) filters.push(eq(titles.type, type as "movie" | "series"))
   if (published) filters.push(eq(titles.published, published === "true"))
   if (cursor) {
@@ -471,7 +474,7 @@ async function deleteTitle(id: string, body: unknown) {
   if (body.confirmation.trim() !== before.title) {
     return json({ message: "The confirmation does not match the title name." }, 422)
   }
-  const attachedVideos = await db.select({ id: videos.id, sourceKey: videos.sourceKey })
+  const attachedVideos = await db.select({ id: videos.id, sourceKey: videos.sourceKey, hlsKey: videos.hlsKey })
     .from(videos).where(eq(videos.titleId, id))
   const publicKeys: string[] = []
   let listingFailed = false
@@ -482,6 +485,9 @@ async function deleteTitle(id: string, body: unknown) {
       listingFailed = true
       console.error("Could not list Block Busters video objects for deletion:", error)
     }
+    publicKeys.push(...attachedVideos.flatMap((video) =>
+      video.hlsKey?.startsWith(`videos/${video.id}/`) ? [video.hlsKey] : [],
+    ))
   }
   publicKeys.push(...[before.posterKey, before.backdropKey].filter((key): key is string => Boolean(key)))
   await db.transaction(async (tx) => {
@@ -498,11 +504,12 @@ async function deleteTitle(id: string, body: unknown) {
     console.error("Could not delete private Block Busters video objects:", error)
     orphanedKeys.push(...privateKeys)
   }
+  const uniquePublicKeys = [...new Set(publicKeys)]
   try {
-    orphanedKeys.push(...await deleteStorageObjects("B2_PUBLIC_BUCKET", publicKeys))
+    orphanedKeys.push(...await deleteStorageObjects("B2_PUBLIC_BUCKET", uniquePublicKeys))
   } catch (error) {
     console.error("Could not delete public Block Busters video objects:", error)
-    orphanedKeys.push(...publicKeys)
+    orphanedKeys.push(...uniquePublicKeys)
   }
   const revalidated = revalidateTitleTags([before.slug])
   return json({

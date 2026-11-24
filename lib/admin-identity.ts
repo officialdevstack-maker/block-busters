@@ -2,6 +2,9 @@ import "server-only"
 
 import { importSPKI, jwtVerify } from "jose"
 
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 let verificationKey: ReturnType<typeof importSPKI> | undefined
 
 async function getVerificationKey() {
@@ -20,9 +23,10 @@ export async function verifyAdminIdentity(
   const match = /^Bearer ([^\s]+)$/.exec(authorization)
   if (!match) return { error: "A valid admin identity is required.", status: 401 as const }
 
+  const key = await getVerificationKey()
   let payload
   try {
-    const result = await jwtVerify(match[1], await getVerificationKey(), {
+    const result = await jwtVerify(match[1], key, {
       algorithms: ["RS256"],
       issuer: "admin-2",
       audience: "blockbusters",
@@ -38,7 +42,7 @@ export async function verifyAdminIdentity(
     typeof payload.sub !== "string" ||
     !payload.sub.includes("@") ||
     typeof payload.jti !== "string" ||
-    !/^[0-9a-f-]{36}$/i.test(payload.jti) ||
+    !uuidPattern.test(payload.jti) ||
     typeof issuedAt !== "number" ||
     typeof payload.exp !== "number" ||
     payload.exp - issuedAt > 60 ||
@@ -66,7 +70,7 @@ export async function verifyAdminIdentity(
     if (
       !requestId ||
       requestId !== payload.jti ||
-      !/^[0-9a-f-]{36}$/i.test(requestId) ||
+      !uuidPattern.test(requestId) ||
       !reason ||
       reason.length < 3 ||
       reason.length > 1000

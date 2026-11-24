@@ -1,12 +1,12 @@
 ALTER TYPE video_status ADD VALUE IF NOT EXISTS 'uploading';
 --> statement-breakpoint
 ALTER TABLE titles
-  ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT true,
   ADD COLUMN IF NOT EXISTS backdrop_key text,
   ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now(),
   ADD COLUMN IF NOT EXISTS admin_request_id uuid;
 --> statement-breakpoint
-UPDATE titles SET published = true WHERE published = false;
+ALTER TABLE titles ALTER COLUMN published SET DEFAULT false;
 --> statement-breakpoint
 ALTER TABLE titles
   ADD CONSTRAINT titles_admin_request_id_unique UNIQUE (admin_request_id);

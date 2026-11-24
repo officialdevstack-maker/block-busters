@@ -31,6 +31,7 @@ const privateBucket = requiredEnv("B2_PRIVATE_BUCKET")
 const publicBucket = requiredEnv("B2_PUBLIC_BUCKET")
 const appUrl = requiredEnv("BLOCKBUSTERS_URL").replace(/\/+$/, "")
 const workerSecret = requiredEnv("WORKER_SECRET")
+if (workerSecret.length < 32) throw new Error("WORKER_SECRET must contain at least 32 characters.")
 let stopping = false
 let lastSweep = 0
 
@@ -119,24 +120,25 @@ function buildFfmpegArgs(input: string, output: string, height: number, hasAudio
 
   const args = ["-hide_banner", "-loglevel", "error", "-y", "-i", input, "-filter_complex", filterComplex]
   const variants: string[] = []
-  const maxRates = ["5350k", "2996k", "1284k"]
-  const bufferSizes = ["7500k", "4200k", "1800k"]
   for (let index = 0; index < targetHeights.length; index += 1) {
     args.push("-map", `[v${index}]`)
     if (hasAudio) args.push("-map", "0:a:0")
-    const bitrate = targetHeights[index] >= 1000 ? "5000k" : targetHeights[index] >= 700 ? "2800k" : "1200k"
+    const [bitrate, maxRate, bufferSize] = targetHeights[index] >= 1000
+      ? ["5000k", "5350k", "7500k"]
+      : targetHeights[index] >= 700
+        ? ["2800k", "2996k", "4200k"]
+        : ["1200k", "1284k", "1800k"]
     args.push(`-b:v:${index}`, bitrate)
-    args.push(`-maxrate:v:${index}`, maxRates[index] ?? "1284k")
-    args.push(`-bufsize:v:${index}`, bufferSizes[index] ?? "1800k")
+    args.push(`-maxrate:v:${index}`, maxRate)
+    args.push(`-bufsize:v:${index}`, bufferSize)
     if (hasAudio) args.push(`-b:a:${index}`, "128k")
     variants.push(hasAudio ? `v:${index},a:${index}` : `v:${index}`)
   }
+  if (hasAudio) args.push("-c:a", "aac", "-ac", "2")
   args.push(
     "-c:v", "libx264",
     "-preset", "medium",
     "-profile:v", "main",
-    "-c:a", "aac",
-    "-ac", "2",
     "-g", "48",
     "-keyint_min", "48",
     "-sc_threshold", "0",

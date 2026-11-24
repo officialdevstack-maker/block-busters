@@ -8,20 +8,6 @@
       "when": 1795500000000,
       "tag": "0001_admin_foundations",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1795504292769,
-      "tag": "0001_snapshot-baseline",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1795504356124,
-      "tag": "0002_schema-snapshot",
-      "breakpoints": true
     }
   ]
 }

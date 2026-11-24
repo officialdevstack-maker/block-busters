@@ -27,7 +27,7 @@ function toMovie(
     rating: row.rating?.toFixed(1) ?? "—",
     genre: row.genre,
     duration: formatDuration(
-      durationSec && durationSec > 0 ? Math.round(durationSec / 60) : row.durationMin,
+      durationSec && durationSec > 0 ? Math.max(1, Math.round(durationSec / 60)) : row.durationMin,
     ),
     image: row.posterKey ? mediaUrl(row.posterKey) : row.posterUrl ?? "",
     accent: row.accent ?? "#e7a91a",
