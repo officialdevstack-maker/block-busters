@@ -1,6 +1,7 @@
 import {
   bigint,
   boolean,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -59,7 +60,7 @@ export const videos = pgTable("videos", {
   sourceSize: bigint("source_size", { mode: "number" }),
   contentType: text("content_type"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-})
+}, (table) => [index("videos_status_created_at_idx").on(table.status, table.createdAt)])
 
 export const adminApiRateLimits = pgTable("admin_api_rate_limits", {
   adminSubject: text("admin_subject").notNull(),

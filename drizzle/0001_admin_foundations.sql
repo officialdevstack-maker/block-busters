@@ -8,8 +8,8 @@ ALTER TABLE titles
 --> statement-breakpoint
 UPDATE titles SET published = true WHERE published = false;
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS titles_admin_request_id_unique
-  ON titles (admin_request_id);
+ALTER TABLE titles
+  ADD CONSTRAINT titles_admin_request_id_unique UNIQUE (admin_request_id);
 --> statement-breakpoint
 ALTER TABLE videos
   ADD COLUMN IF NOT EXISTS duration_sec integer,
@@ -22,8 +22,8 @@ ALTER TABLE videos
   ADD COLUMN IF NOT EXISTS source_size bigint,
   ADD COLUMN IF NOT EXISTS content_type text;
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS videos_admin_request_id_unique
-  ON videos (admin_request_id);
+ALTER TABLE videos
+  ADD CONSTRAINT videos_admin_request_id_unique UNIQUE (admin_request_id);
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS videos_status_created_at_idx
   ON videos (status, created_at);
